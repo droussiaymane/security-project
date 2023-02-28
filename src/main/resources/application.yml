@@ -1,0 +1,35 @@
+spring:
+  config:
+    name: mb-admin-administration
+    import: common.properties
+  profiles:
+    #active: local-vpn
+    active: local
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+    import: application-local.properties
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local-vpn
+    import: application-local-vpn.properties
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+    import: /etc/config/mb-admin-administration-dev.properties
+
+---
+spring:
+  config:
+    activate:
+      on-profile: uat
+    import: /etc/config/mb-admin-administration-uat.properties

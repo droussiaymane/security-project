@@ -1,0 +1,13 @@
+rootProject.name = 'mb-admin-administration'
+enableFeaturePreview("VERSION_CATALOGS")
+
+includeBuild '../../shared/common-objects'
+//includeBuild '../../shared/jwt-authentication'
+
+dependencyResolutionManagement {
+    versionCatalogs {
+        libs {
+            from(files("../../gradle/libs.versions.toml"))
+        }
+    }
+}

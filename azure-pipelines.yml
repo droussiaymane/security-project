@@ -1,0 +1,93 @@
+# Gradle
+# Build your Java project and run tests with Gradle using a Gradle wrapper script.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/java
+
+trigger:
+  batch: 'true'
+  paths:
+    include:
+      - '/services/mb-admin-administration/*'
+  branches:
+    exclude:
+      - 'addversion*'
+      - 'changeazuretemplate*'
+
+pool:
+  name: MB2_DOCKER_POOL
+
+  #schedules:
+  #- cron: "0 0 * * 5"
+  #  displayName: Weekly Night build
+  #  branches:
+  #    include:
+  #    - main
+
+resources:
+  - repo: self
+variables:
+  - group: AWS-keys
+  - group: AWS-reference-keys
+  - group: Kotak-ECR-Credentials
+  - group: Key-Vault-Vars
+  - name: appName
+    value: $(Build.DefinitionName)
+  - name: imageName
+    value: '$(appName)'
+  - name: isMaster
+    value: $[eq(variables['Build.SourceBranch'], 'refs/heads/master')]
+  - name: isDev
+    value: $[eq(variables['Build.SourceBranch'], 'refs/heads/dev')]
+  - name: isMain
+    value: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
+  - name: isUat
+    value: $[eq(variables['Build.SourceBranch'], 'refs/heads/CI-add-uat')]
+  - name: sharedScripts
+    value: '$(Build.SourcesDirectory)/mb2-admin-ms/shared/scripts'
+  - name: workingDir
+    value: 'mb2-admin-ms/services/mb-admin-administration'
+  - name: APP_NAME
+    value: $(DOCKER_REPOSITORY_NAME)
+  - name: AWS_CREDENTIAL
+    value: 'KOTAK-ECR-AUTH-SERVICE'
+  - name: DOCKER_BUILDKIT
+    value: 1
+  - name: DOCKER_REPOSITORY
+    value: '$(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_DEFAULT_REGION).amazonaws.com/$(REPO_NAME)'
+  - name: DOCKERFILELOC
+    value: 'src/main/resources/docker'
+  - name: GRADLE_USER_HOME
+    value: $(Pipeline.Workspace)/.gradle
+  - name: REPO_NAME
+    value: mb-admin-administration
+  - name: AZURE_DEVOPS_EXT_PAT
+    value: '$(Personal-Access-Token)'
+  - name: SonarServerName
+    value: 'sonarqube-sonarqube.sonarqube.svc.cluster.local:9000'
+  - name: SonarProjectKey
+    value: mb-2-0-mb-admin-administration
+  - name: SonarToken
+    value: '$(sonar-2-0-token)'
+  - name: service-name
+    value: mb-admin-administration
+
+
+
+stages:
+  - stage: Build
+    displayName: Build code
+    jobs:
+      - job: Build
+        workspace:
+          clean: resources
+        displayName: Build
+        steps:
+          - checkout: self
+            persistCredentials: true
+            fetchDepth: 1
+          - checkout: git://Mobile Banking 2.0/kotak-mb-platform
+            persistCredentials: true
+            fetchDepth: 1
+
+
+          - template: ../../templates/azure-template/build-template.yml

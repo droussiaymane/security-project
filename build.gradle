@@ -1,0 +1,110 @@
+plugins {
+    id 'java'
+    id 'checkstyle'
+    id 'jacoco'
+    alias(libs.plugins.springBoot)
+    alias(libs.plugins.springDependencyManagement)
+    alias(libs.plugins.gitProperties)
+    alias(libs.plugins.docker)
+    alias(libs.plugins.sonarqube)
+}
+
+group = 'com.kotak.mb2.admin'
+version = '1.9.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(libs.versions.java.get())
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+jar {
+    enabled = false
+}
+
+dependencies {
+    implementation platform(libs.springCloud)
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation libs.springDoc
+    implementation 'com.google.code.gson:gson'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation "com.kotak.mb2:common-objects"
+    implementation 'org.yaml:snakeyaml:1.33'
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+    implementation 'org.json:json:20220924'
+    implementation 'commons-codec:commons-codec:1.15'
+    implementation 'org.postgresql:postgresql:42.5.1'
+    implementation 'org.apache.commons:commons-collections4:4.0'
+    implementation 'io.jsonwebtoken:jjwt:0.9.1'
+    implementation 'org.springframework.boot:spring-boot-starter-security:3.0.3'
+}
+
+configurations.implementation {
+    exclude group: 'org.springframework.boot', module: 'org.yaml.snakeyaml'
+}
+
+test.doFirst {
+    delete fileTree('tmp') {
+        include '*.db'
+    }
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled true
+    }
+}
+test.finalizedBy jacocoTestReport
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "failed", "skipped")
+    }
+}
+
+sonarqube {
+    properties {
+        property 'sonar.coverage.exclusions', "**/com/kotak/mb2/admin/administration/**"
+    }
+}
+
+tasks.withType(Checkstyle) {
+    configFile file('codequality/checkstyle.xml')
+    checkstyleTest.enabled = false
+    checkstyleMain.enabled = false
+}
+
+docker {
+    dependsOn bootJar
+    name "${project.group}/${jar.archiveBaseName.get()}:${version}"
+    copySpec.from("build/libs").into("libs")
+    dockerfile file('src/main/resources/docker/Dockerfile')
+}
+
+task printVersion {
+    doLast {
+        println project.version
+    }
+}
+
+gitProperties {
+    dateFormat = "yyyy-MM-dd'T'HH:mmZ"
+    dateFormatTimeZone = "IST"
+}
+
+springBoot {
+    buildInfo()
+}
